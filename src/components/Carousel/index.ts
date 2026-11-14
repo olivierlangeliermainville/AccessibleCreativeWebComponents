@@ -3,6 +3,7 @@ import CarouselRoot, {
     CarouselSlide,
     CarouselPrev,
     CarouselNext,
+    CarouselPlayPause,
 } from './Carousel'
 
 export const Carousel = Object.assign(CarouselRoot, {
@@ -10,6 +11,9 @@ export const Carousel = Object.assign(CarouselRoot, {
     Slide: CarouselSlide,
     Prev: CarouselPrev,
     Next: CarouselNext,
+    PlayPause: CarouselPlayPause,
 })
 
-export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext }
+export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext, CarouselPlayPause }
+export { useCarouselState, useCarouselFrame } from './public'
+export type { CarouselProps, MotionFrame } from './types'

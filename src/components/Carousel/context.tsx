@@ -10,9 +10,9 @@ export function useCarousel() {
 }
 
 export const SlideContext = createContext({
-    index: 0,       // position in the ring (real slides + copies)
-    total: 0,       // ring size
-    realIndex: 0,   // index among your real slides
-    realCount: 0,
+    ringIndex: 0,   // position in the ring (real slides + copies)
+    ringSize: 0,    // number of slides in the ring
+    slideIndex: 0,  // index among your real slides
+    slideCount: 0,  // number of real slides
     isClone: false,
 })

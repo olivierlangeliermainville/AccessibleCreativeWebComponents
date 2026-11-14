@@ -54,7 +54,7 @@ function setup({ slides = 5, ...props }: SetupProps = {}) {
 }
 
 const allSlides = () => Array.from(document.querySelectorAll<HTMLElement>('[data-carousel-slide]'))
-const exposedSlides = () => allSlides().filter((el) => el.getAttribute('aria-hidden') === 'false')
+const exposedSlides = () => allSlides().filter((el) => el.getAttribute('aria-hidden') !== 'true')
 const exposedText = () => exposedSlides().map((el) => el.textContent)
 const prev = () => screen.getByRole('button', { name: 'Previous slide' })
 const next = () => screen.getByRole('button', { name: 'Next slide' })
@@ -140,8 +140,8 @@ describe('Carousel in default mode', () => {
 
     it('starts with Prev disabled', () => {
         setup()
-        expect(prev()).toBeDisabled()
-        expect(next()).toBeEnabled()
+        expect(prev()).toHaveAttribute('aria-disabled', 'true')
+        expect(next()).not.toHaveAttribute('aria-disabled')
     })
 
     it('moves one slide at a time and stops at the end', async () => {
@@ -153,8 +153,8 @@ describe('Carousel in default mode', () => {
 
         await user.click(next())
         expect(exposedText()).toEqual(['Slide 3', 'Slide 4', 'Slide 5'])
-        expect(next()).toBeDisabled()
-        expect(prev()).toBeEnabled()
+        expect(next()).toHaveAttribute('aria-disabled', 'true')
+        expect(prev()).not.toHaveAttribute('aria-disabled')
     })
 
     it('moves back with Prev', async () => {
@@ -164,13 +164,13 @@ describe('Carousel in default mode', () => {
         await user.click(next())
         await user.click(prev())
         expect(exposedText()).toEqual(['Slide 1', 'Slide 2', 'Slide 3'])
-        expect(prev()).toBeDisabled()
+        expect(prev()).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('disables both buttons when every slide already fits', () => {
         setup({ slides: 3 })
-        expect(prev()).toBeDisabled()
-        expect(next()).toBeDisabled()
+        expect(prev()).toHaveAttribute('aria-disabled', 'true')
+        expect(next()).toHaveAttribute('aria-disabled', 'true')
         expect(exposedText()).toEqual(['Slide 1', 'Slide 2', 'Slide 3'])
     })
 
@@ -201,12 +201,12 @@ describe('Carousel in infinite mode', () => {
     it('keeps both buttons enabled', async () => {
         const user = userEvent.setup()
         setup({ type: 'infinite' })
-        expect(prev()).toBeEnabled()
-        expect(next()).toBeEnabled()
+        expect(prev()).not.toHaveAttribute('aria-disabled')
+        expect(next()).not.toHaveAttribute('aria-disabled')
 
         await user.click(prev())
-        expect(prev()).toBeEnabled()
-        expect(next()).toBeEnabled()
+        expect(prev()).not.toHaveAttribute('aria-disabled')
+        expect(next()).not.toHaveAttribute('aria-disabled')
     })
 
     it('goes forward past the last slide and comes back to the first', async () => {
@@ -308,6 +308,6 @@ describe('Carousel drag', () => {
         setup({ drag: true })
         drag(300, -300) // 6 slides worth
         expect(exposedText()).toEqual(['Slide 3', 'Slide 4', 'Slide 5'])
-        expect(next()).toBeDisabled()
+        expect(next()).toHaveAttribute('aria-disabled', 'true')
     })
 })
