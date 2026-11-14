@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Carousel, useCarouselState, useCarouselFrame } from './index'
 import { spring } from '../Helpers/Easings'
+import { Carousel } from './Carousel'
+import { useCarouselState, useCarouselFrame } from './public'
 
 // ---------------------------------------------------------------------------------------------
 // Small pieces the demos share
@@ -153,7 +154,7 @@ export function GlideDemo() {
             aria-label="Gliding carousel"
             gap={16}
             drag={{ momentum: true }}
-            autoPlay={{ speed: 0.6, playPauseEasingDuration: 900 }}
+            autoPlay={{ speed: 0.6, ease: { pause: { duration: 900 } } }}
         >
             <Carousel.Track>{slides(6, { width: 'w-32' })}</Carousel.Track>
             <div className="mt-3">
@@ -178,11 +179,9 @@ export function SpringDemo() {
             drag={{ momentum: true }}
             autoPlay={{
                 speed: 0.7,
-                dragDirectionChange: true,
-                playPauseEasingDuration: 600,
-                releaseEasingDuration: 2400,
-                releaseEasing: bouncy,
-                pauseOnHover: false,
+                steer: { drag: true },
+                pauseOn: { hover: false },
+                ease: { pause: { duration: 600 }, release: { duration: 2400, easing: bouncy } },
             }}
         >
             <Carousel.Track>{slides(6, { width: 'w-32' })}</Carousel.Track>
@@ -202,9 +201,9 @@ export function ScrollDemo() {
             gap={16}
             autoPlay={{
                 speed: 0.8,
-                scrollInfluence: { directionChangeDuration: 600 },
-                playPauseEasingDuration: 600,
-                pauseOnHover: false,
+                steer: { scroll: true },
+                pauseOn: { hover: false },
+                ease: { pause: { duration: 600 }, reverse: { duration: 600 } },
             }}
         >
             <Carousel.Track>{slides(6, { width: 'w-32' })}</Carousel.Track>
@@ -222,7 +221,13 @@ export function ButtonDirectionDemo() {
             type="infinite"
             aria-label="Button steered carousel"
             gap={16}
-            autoPlay={{ speed: 0.8, buttonDirectionChange: true, playPauseEasingDuration: 600, pauseOnHover: false }}
+            autoPlay={{
+                speed: 0.8,
+                direction: 'backward',
+                steer: { buttons: true },
+                pauseOn: { hover: false },
+                ease: { pause: { duration: 600 }, reverse: { duration: 600 } },
+            }}
         >
             <Carousel.Track>{slides(6, { width: 'w-32' })}</Carousel.Track>
             <NavButtons />
@@ -231,7 +236,37 @@ export function ButtonDirectionDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 8. CSS variables: style anything by how fast the carousel moves
+// 8. Step autoplay steered by the buttons: the same options work in both autoplay modes
+// ---------------------------------------------------------------------------------------------
+
+export function StepSteerDemo() {
+    return (
+        <Carousel
+            type="infinite"
+            aria-label="Step carousel steered by buttons"
+            gap={16}
+            drag
+            autoPlay={{ interval: 2200, steer: { buttons: true, drag: true } }}
+        >
+            <Carousel.Track>{slides(6, { width: 'w-32' })}</Carousel.Track>
+            <div className="mt-3 flex items-center gap-2">
+                <Carousel.Prev className={navButton}>←</Carousel.Prev>
+                <Carousel.Next className={navButton}>→</Carousel.Next>
+                <PlayPauseButton />
+                <DirectionLabel />
+            </div>
+        </Carousel>
+    )
+}
+
+// Shows the direction hook value, so you can see Prev, Next and dragging turn it
+function DirectionLabel() {
+    const { direction } = useCarouselState()
+    return <span className="ml-2 text-sm text-neutral-400">heading {direction}</span>
+}
+
+// ---------------------------------------------------------------------------------------------
+// 9. CSS variables: style anything by how fast the carousel moves
 // ---------------------------------------------------------------------------------------------
 
 export function VelocityDemo() {
@@ -242,7 +277,7 @@ export function VelocityDemo() {
             gap={16}
             cssVariables
             drag={{ momentum: true }}
-            autoPlay={{ speed: 0.4, playPauseEasingDuration: 800, releaseEasingDuration: 1800, pauseOnHover: false }}
+            autoPlay={{ speed: 0.4, pauseOn: { hover: false }, ease: { pause: { duration: 800 }, release: { duration: 1800 } } }}
         >
             <Carousel.Track className="py-4">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -252,7 +287,7 @@ export function VelocityDemo() {
                             className={cardClass}
                             style={{
                                 background: cardColor(i + 1),
-                                transform: 'skewX(calc(var(--carousel-velocity, 0) * -1deg))',
+                                transform: 'skewX(calc(var(--carousel-velocity, 0) * -8deg))',
                                 scale: 'calc(1 - min(abs(var(--carousel-velocity, 0)), 4) * 0.04)',
                             }}
                         >
@@ -266,7 +301,7 @@ export function VelocityDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 9. Frame hook: follow the motion without re-rendering
+// 10. Frame hook: follow the motion without re-rendering
 // ---------------------------------------------------------------------------------------------
 
 function Backdrop() {
@@ -325,7 +360,7 @@ export function FrameDemo() {
             aria-label="Frame hook carousel"
             gap={16}
             drag={{ momentum: true }}
-            autoPlay={{ speed: 0.5, playPauseEasingDuration: 800, releaseEasingDuration: 1800, pauseOnHover: false }}
+            autoPlay={{ speed: 0.5, pauseOn: { hover: false }, ease: { pause: { duration: 800 }, release: { duration: 1800 } } }}
             className="relative overflow-hidden rounded-xl bg-neutral-900 p-6"
         >
             <Backdrop />
@@ -336,7 +371,7 @@ export function FrameDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 10. Your own words, and reduced motion
+// 11. Your own words, and reduced motion
 // ---------------------------------------------------------------------------------------------
 
 const french = {
@@ -382,7 +417,7 @@ export function LabelsDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 11. Pause off-screen: scroll away and compare the two counters
+// 12. Pause off-screen: scroll away and compare the two counters
 // ---------------------------------------------------------------------------------------------
 
 export function OffScreenDemo() {
@@ -399,7 +434,7 @@ export function OffScreenDemo() {
                 type="infinite"
                 aria-label="Carousel A"
                 gap={8}
-                autoPlay={{ speed: 1.5, pauseOffScreen: true, pauseOnHover: false }}
+                autoPlay={{ speed: 1.5, pauseOn: { offScreen: true, hover: false } }}
                 onSlideChange={() => setPausingChanges((n) => n + 1)}
             >
                 <Carousel.Track>{slides(4, { width: 'w-20' })}</Carousel.Track>
@@ -409,7 +444,7 @@ export function OffScreenDemo() {
                 type="infinite"
                 aria-label="Carousel B"
                 gap={8}
-                autoPlay={{ speed: 1.5, pauseOffScreen: false, pauseOnHover: false }}
+                autoPlay={{ speed: 1.5, pauseOn: { offScreen: false, hover: false } }}
                 onSlideChange={() => setRunningChanges((n) => n + 1)}
             >
                 <Carousel.Track>{slides(4, { width: 'w-20' })}</Carousel.Track>

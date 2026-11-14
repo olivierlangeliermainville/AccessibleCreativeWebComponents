@@ -1,69 +1,76 @@
-import type { AutoPlayOptions, DragOptions, ScrollOptions } from './types'
+import type { AutoPlayOptions, DragOptions, Easing } from './types'
 
-// Default easing. It lives at module scope because the React Compiler can't handle arrow
-// functions as destructuring defaults and would skip the whole component.
-export const linear = (t: number) => t
+// Every default lives here. The rest of the code receives options already filled in, so nothing
+// else has to know what "not given" means.
 
-export function resolveDragOptions(drag: boolean | DragOptions, duration: number) {
-    const {
-        momentum = false,
-        reach = 0.25,
-        maxSlides = 8,
-        friction = 1,
-        duration: releaseDuration = duration,
-        minDuration = 0,
-        maxDuration = 10000,
-    }: DragOptions = typeof drag === 'object' ? drag : {}
+export const linear: Easing = (t) => t
+
+// ---------------------------------------------------------------------------------------------
+// Drag
+// ---------------------------------------------------------------------------------------------
+
+export function resolveDrag(drag: boolean | DragOptions, duration: number) {
+    const options: DragOptions = typeof drag === 'object' ? drag : {}
+    const momentum = options.momentum
+    const tuning = typeof momentum === 'object' ? momentum : {}
     return {
         draggable: drag !== false,
-        momentum,
-        reach,
-        maxSlides,
-        friction,
-        releaseDuration,
-        minDuration,
-        maxDuration,
+        momentum: !!momentum,
+        reach: tuning.reach ?? 0.25,
+        maxSlides: tuning.maxSlides ?? 8,
+        friction: Math.max(tuning.friction ?? 1, 0.01),
+        minDuration: tuning.minDuration ?? 0,
+        maxDuration: tuning.maxDuration ?? 10000,
+        settle: options.settle ?? duration,
     }
 }
+export type ResolvedDrag = ReturnType<typeof resolveDrag>
 
-export function resolveAutoPlayOptions(autoPlay: boolean | AutoPlayOptions) {
-    const {
-        dragDirectionChange = false,
-        buttonDirectionChange = false,
-        pauseOffScreen = true,
-        interval = 5000,
-        speed,
-        scrollInfluence = false,
-        playPauseEasingDuration = 0,
-        releaseEasingDuration = playPauseEasingDuration,
-        pauseOnHover = true,
-        pauseOnFocus = true,
-        playPauseButton = true,
-        releaseEasing = linear,
-        playPauseEasing = linear,
-    }: AutoPlayOptions = typeof autoPlay === 'object' ? autoPlay : {}
+// ---------------------------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------------------------
+
+type ResolvedEase = { duration: number; easing: Easing }
+
+export function resolveAutoPlay(autoPlay: boolean | AutoPlayOptions) {
+    const options: AutoPlayOptions = typeof autoPlay === 'object' ? autoPlay : {}
+    const steer = options.steer ?? {}
+    const scroll = steer.scroll
+    const pauseOn = options.pauseOn ?? {}
+    const ease = options.ease ?? {}
+
+    const pause: ResolvedEase = {
+        duration: ease.pause?.duration ?? 0,
+        easing: ease.pause?.easing ?? linear,
+    }
     return {
-        dragDirectionChange,
-        buttonDirectionChange,
-        pauseOffScreen,
-        interval,
-        speed,
-        scrollInfluence,
-        playPauseEasingDuration,
-        releaseEasingDuration,
-        pauseOnHover,
-        pauseOnFocus,
-        playPauseButton,
-        releaseEasing,
-        playPauseEasing,
+        enabled: !!autoPlay,
+        speed: options.speed,                  // given: glide mode. Not given: step mode.
+        interval: options.interval ?? 5000,
+        direction: options.direction ?? 'forward',
+        steer: {
+            scroll: !!scroll,
+            scrollInverse: typeof scroll === 'object' && !!scroll.inverse,
+            drag: !!steer.drag,
+            buttons: !!steer.buttons,
+        },
+        pauseOn: {
+            hover: pauseOn.hover ?? true,
+            focus: pauseOn.focus ?? true,
+            offScreen: pauseOn.offScreen ?? true,
+        },
+        ease: {
+            pause,
+            // A release eases like a pause unless told otherwise
+            release: {
+                duration: ease.release?.duration ?? pause.duration,
+                easing: ease.release?.easing ?? pause.easing,
+            },
+            reverse: {
+                duration: ease.reverse?.duration ?? 200,
+                easing: ease.reverse?.easing ?? linear,
+            },
+        },
     }
 }
-
-export function resolveScrollOptions(scrollInfluence: boolean | ScrollOptions) {
-    const {
-        inverse = false,
-        directionChangeDuration = 200,
-        directionChangeEasing = linear,
-    }: ScrollOptions = typeof scrollInfluence === 'object' ? scrollInfluence : {}
-    return { inverse, directionChangeDuration, directionChangeEasing }
-}
+export type ResolvedAutoPlay = ReturnType<typeof resolveAutoPlay>

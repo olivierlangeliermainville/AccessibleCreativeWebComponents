@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { CarouselContextValue } from './types'
+import type { CarouselContextValue } from './internal'
 
 export const CarouselContext = createContext<CarouselContextValue | null>(null)
 

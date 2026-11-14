@@ -1,4 +1,6 @@
-import CarouselRoot, {
+// The package entry point. Import from the folder or from './Carousel': both give the same thing.
+export {
+    Carousel,
     CarouselTrack,
     CarouselSlide,
     CarouselPrev,
@@ -6,14 +8,24 @@ import CarouselRoot, {
     CarouselPlayPause,
 } from './Carousel'
 
-export const Carousel = Object.assign(CarouselRoot, {
-    Track: CarouselTrack,
-    Slide: CarouselSlide,
-    Prev: CarouselPrev,
-    Next: CarouselNext,
-    PlayPause: CarouselPlayPause,
-})
-
-export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext, CarouselPlayPause }
+// Hooks for building your own controls and effects
 export { useCarouselState, useCarouselFrame } from './public'
-export type { CarouselProps, MotionFrame } from './types'
+
+// The public types. Internals (./internal) are deliberately left out.
+export type {
+    CarouselProps,
+    CarouselLabels,
+    CarouselType,
+    Direction,
+    Easing,
+    Ease,
+    DragOptions,
+    MomentumOptions,
+    AutoPlayOptions,
+    StepAutoPlay,
+    GlideAutoPlay,
+    GlideEase,
+    SteerOptions,
+    PauseOptions,
+    MotionFrame,
+} from './types'

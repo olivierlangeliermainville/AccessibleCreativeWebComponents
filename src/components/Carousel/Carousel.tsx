@@ -1,9 +1,10 @@
 "use client"
 import { useRef, useState } from 'react'
 import type { CarouselProps, Direction } from './types'
+import { toDirection, toSign, type Sign } from './internal'
 import { defaultLabels } from './defaults'
 import { visuallyHidden, useSystemReducedMotion, mod } from './helpers'
-import { resolveAutoPlayOptions, resolveDragOptions, resolveScrollOptions } from './options'
+import { resolveAutoPlay, resolveDrag } from './options'
 import { CarouselContext } from './context'
 import { useMotion } from './hooks/useMotion'
 import { useAutoPlay } from './hooks/useAutoPlay'
@@ -11,14 +12,13 @@ import { useDrag } from './hooks/useDrag'
 import { useOnScreen } from './hooks/useOnScreen'
 import { useOnChange } from './hooks/useOnChange'
 import { useMotionReadout } from './hooks/useMotionReadout'
-import { useScrollDirection } from '../Helpers/Scroll'
+import { useScrollSteer } from './hooks/useScrollSteer'
 
-// The parts live in their own files. They are re-exported here so imports from './Carousel' still work.
-export { CarouselTrack } from './CarouselTrack'
-export { CarouselSlide } from './CarouselSlide'
-export { CarouselPrev, CarouselNext, CarouselPlayPause } from './CarouselControls'
+import { CarouselTrack } from './CarouselTrack'
+import { CarouselSlide } from './CarouselSlide'
+import { CarouselPrev, CarouselNext, CarouselPlayPause } from './CarouselControls'
 
-export default function Carousel({
+export function Carousel({
     children,
     type = 'default',
     gap = 0,
@@ -30,28 +30,14 @@ export default function Carousel({
     onSlideChange,
     onPlayingChange,
     onDragChange,
-    cssVariables = true,
+    cssVariables = false,
     ...props
 }: CarouselProps) {
     // --- Options --------------------------------------------------------------------
 
-    const dragSettings = resolveDragOptions(drag, duration)
-    const {
-        dragDirectionChange,
-        buttonDirectionChange,
-        pauseOffScreen,
-        interval,
-        speed,
-        scrollInfluence,
-        playPauseEasingDuration,
-        releaseEasingDuration,
-        pauseOnHover,
-        pauseOnFocus,
-        playPauseButton,
-        releaseEasing,
-        playPauseEasing,
-    } = resolveAutoPlayOptions(autoPlay)
-    const { inverse, directionChangeDuration, directionChangeEasing } = resolveScrollOptions(scrollInfluence)
+    const dragSettings = resolveDrag(drag, duration)
+    const autoPlaySettings = resolveAutoPlay(autoPlay)
+    const { steer, pauseOn } = autoPlaySettings
     const labels = { ...defaultLabels, ...labelOverrides }
 
     // --- State ----------------------------------------------------------------------
@@ -65,7 +51,10 @@ export default function Carousel({
     const [hasMoved, setHasMoved] = useState(false)     // false until the first move: nothing is announced on load
     const [playing, setPlaying] = useState(true)        // the user's choice: play/pause button or keyboard focus
     const [hovered, setHovered] = useState(false)       // temporary pause while the mouse is over the carousel
-    const [manualDirection, setManualDirection] = useState<Direction>(null)
+    // Where autoplay is heading. One value: it starts as the option, and whichever of scroll, drag or
+    // buttons acts last changes it.
+    const [direction, setDirection] = useState<Direction>(autoPlaySettings.direction)
+
     const systemReduced = useSystemReducedMotion()
     const reduced = reducedMotion ?? systemReduced
     const carouselRef = useRef<HTMLElement>(null)
@@ -77,54 +66,38 @@ export default function Carousel({
 
     // Default mode stops at the last slide; a resize can't leave us past it
     const settledPosition = infinite ? settled : Math.min(settled, maxPosition)
+    const activeIndex = slideCount > 0 ? mod(settledPosition, slideCount) : 0
+    const canPrev = scrollable && (infinite || settledPosition > 0)
+    const canNext = scrollable && (infinite || settledPosition < maxPosition)
 
     // --- Motion ---------------------------------------------------------------------
+
     const { onFrame, subscribeFrame } = useMotionReadout(carouselRef, cssVariables)
     const motion = useMotion({ infinite, maxPosition, duration, reduced, setSettled, setHasMoved, onFrame })
 
-    // --- Glide direction ------------------------------------------------------------
-
-    // The glide goes the way the last scroll or drag decided. The hook listens to page scroll whether
-    // or not scrollInfluence is on, so its value only counts when it is.
-    const scrollValue = useScrollDirection(10, inverse)
-
-    // A scroll flip hands control back to the scroll, so it clears the drag's direction.
-    // State adjusted during render, the pattern React recommends over an effect for this.
-    const [lastScroll, setLastScroll] = useState(scrollValue)
-    if (scrollValue !== lastScroll) {
-        setLastScroll(scrollValue)
-        if (scrollInfluence) setManualDirection(null)
-    }
-
-    const glideDirection =
-        manualDirection ?? (scrollInfluence ? scrollValue : null) ?? -1
-
     // --- Autoplay -------------------------------------------------------------------
 
-    const onScreen = useOnScreen(carouselRef, pauseOffScreen && !!autoPlay)
+    const onScreen = useOnScreen(carouselRef, pauseOn.offScreen && autoPlaySettings.enabled)
 
     // autoPlayOn:  autoplay is on and allowed to move
     // canRun:      ...and nobody is dragging (a drag takes over instantly)
     // autoPlaying: ...and the user hasn't paused it (button or keyboard focus)
     // running:     ...and not held by hover or by being scrolled out of view (glide mode eases into these)
-    const autoPlayOn = !!autoPlay && infinite && !reduced
+    const autoPlayOn = autoPlaySettings.enabled && infinite && !reduced
     const canRun = autoPlayOn && !dragging
     const autoPlaying = canRun && playing
     const running = autoPlaying && !hovered && onScreen
 
+    useScrollSteer(autoPlayOn && steer.scroll, steer.scrollInverse, setDirection)
+
     const { glideVelocityRef, afterReleaseRef } = useAutoPlay({
         motion,
+        settings: autoPlaySettings,
         running,
         canRun,
-        speed,
-        interval,
+        direction: toSign(direction),
         settled,
         setSettled,
-        glideDirection,
-        playPauseEasingDuration,
-        releaseEasingDuration,
-        directionChangeDuration,
-        easings: { playPause: playPauseEasing, release: releaseEasing, directionChange: directionChangeEasing },
     })
 
     // --- Drag -----------------------------------------------------------------------
@@ -135,69 +108,73 @@ export default function Carousel({
         infinite,
         maxPosition,
         setDragging,
-        setManualDirection,
+        onTurn: autoPlayOn && steer.drag ? setDirection : undefined,
         glide: {
-            handoff: !!speed && autoPlayOn && playing,
+            handoff: !!autoPlaySettings.speed && autoPlayOn && playing,
             velocityRef: glideVelocityRef,
             afterReleaseRef,
-            dragDirectionChange,
             setHovered,
         },
     })
 
-    // --- Announcements --------------------------------------------------------------
+    // --- What the parts and the public hooks can do ----------------------------------
 
-    // Announced after Prev/Next or a drag, because focus stays on the button. It reads the settled
-    // position, so it speaks once per move. Silent while autoplay is on, including while hover or
-    // scrolling out of view holds it, or it would announce a slide every time the carousel scrolled away.
-    const firstShown = (slideCount > 0 ? mod(settledPosition, slideCount) : 0) + 1
-    const lastShown =
-        visibleCount >= slideCount ? firstShown : mod(settledPosition + visibleCount - 1, slideCount) + 1
-    const status = hasMoved && !dragging && !autoPlaying ? labels.status(firstShown, lastShown, slideCount) : ''
+    // What Prev and Next do. Steering is part of it, so a press turns autoplay if that is switched on.
+    const step = (sign: Sign) => {
+        if (sign === 1 ? !canNext : !canPrev) return
+        motion.goBy(sign)
+        if (autoPlayOn && steer.buttons) setDirection(toDirection(sign))
+    }
 
-    // Callbacks
-    const activeIndex = slideCount > 0 ? mod(settledPosition, slideCount) : 0
+    const goTo = (index: number) => {
+        // In infinite mode, take the shorter way round
+        const steps = infinite
+            ? mod(index - activeIndex + slideCount / 2, slideCount) - slideCount / 2
+            : index - settledPosition
+        if (steps !== 0) motion.goBy(steps)
+    }
+
+    // --- What the carousel tells its users --------------------------------------------
+
     useOnChange(activeIndex, onSlideChange)
     useOnChange(playing, onPlayingChange)
     useOnChange(dragging, onDragChange)
 
-    const goTo = (index: number) => {
-    const steps = infinite
-        ? mod(index - activeIndex + slideCount / 2, slideCount) - slideCount / 2 // the shorter way round
-        : index - settledPosition
-    if (steps !== 0) motion.goBy(steps)
-}
+    // Announced after Prev/Next or a drag, because focus stays on the button. It reads the settled
+    // position, so it speaks once per move. Silent while autoplay is on, including while hover or
+    // scrolling out of view holds it, or it would announce a slide every time the carousel scrolled away.
+    const firstShown = activeIndex + 1
+    const lastShown =
+        visibleCount >= slideCount ? firstShown : mod(settledPosition + visibleCount - 1, slideCount) + 1
+    const status = hasMoved && !dragging && !autoPlaying ? labels.status(firstShown, lastShown, slideCount) : ''
 
     return (
         <CarouselContext.Provider
             value={{
-                activeIndex,
-                slideCount,
-                goTo,
-                subscribeFrame,
-                settledPosition,
-                registerSlide: motion.registerSlide,
-                glideDirection,
-                visibleCount,
-                gap,
                 type,
+                gap,
                 labels,
-                canPrev: scrollable && (infinite || settledPosition > 0),
-                canNext: scrollable && (infinite || settledPosition < maxPosition),
-                draggable: dragSettings.draggable && scrollable,
-                dragging,
-                autoPlayable: !!autoPlay,
+                slideCount,
+                visibleCount,
+                settledPosition,
+                activeIndex,
+                direction,
                 playing,
-                playPauseButton,
-                buttonDirectionChange,
-                setManualDirection,
+                dragging,
+                draggable: dragSettings.draggable && scrollable,
+                autoPlayable: autoPlaySettings.enabled,
+                canPrev,
+                canNext,
+                step,
+                goTo,
                 setPlaying,
-                setSlideCount,
-                setVisibleCount,
-                goBy: motion.goBy,
                 startDrag,
                 moveDrag,
                 releaseDrag,
+                registerSlide: motion.registerSlide,
+                subscribeFrame,
+                setSlideCount,
+                setVisibleCount,
             }}
         >
             <section
@@ -208,7 +185,7 @@ export default function Carousel({
                 onPointerEnter={(event) => {
                     props.onPointerEnter?.(event)
                     // Mouse only: touch has no "leave", so it would stay paused
-                    if (pauseOnHover && event.pointerType === 'mouse') setHovered(true)
+                    if (pauseOn.hover && event.pointerType === 'mouse') setHovered(true)
                 }}
                 onPointerLeave={(event) => {
                     props.onPointerLeave?.(event)
@@ -218,7 +195,7 @@ export default function Carousel({
                     props.onFocus?.(event)
                     // Keyboard focus pauses until the user presses play. Not for mouse clicks,
                     // or clicking the pause button would un-pause itself.
-                    if (pauseOnFocus && event.target.matches(':focus-visible')) setPlaying(false)
+                    if (pauseOn.focus && event.target.matches(':focus-visible')) setPlaying(false)
                 }}
             >
                 {children}
@@ -229,3 +206,15 @@ export default function Carousel({
         </CarouselContext.Provider>
     )
 }
+
+// The parts hang off the component, so <Carousel.Track> and friends work. They are attached here, next
+// to the root, so nothing depends on the folder's index having run first. This file exports only
+// components, which is what Fast Refresh needs: the hooks are in ./public, and the index has the lot.
+Carousel.Track = CarouselTrack
+Carousel.Slide = CarouselSlide
+Carousel.Prev = CarouselPrev
+Carousel.Next = CarouselNext
+Carousel.PlayPause = CarouselPlayPause
+
+export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext, CarouselPlayPause }
+export default Carousel

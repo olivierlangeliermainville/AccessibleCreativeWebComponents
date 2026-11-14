@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { SETTLE } from '../defaults'
 import { clamp } from '../helpers'
-import type { DrawSlide } from '../types'
+import type { DrawSlide } from '../internal'
 
 type MotionOptions = {
     infinite: boolean
