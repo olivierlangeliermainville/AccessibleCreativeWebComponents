@@ -3,6 +3,7 @@ import {
     BasicDemo,
     InfiniteDemo,
     HeroDemo,
+    DotsDemo,
     GlideDemo,
     SpringDemo,
     ScrollDemo,
@@ -62,7 +63,15 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="4. Glide"
+                    title="4. Dots"
+                    description="Carousel.Dots draws accessible slide pickers. In default mode it has a dot for each place the carousel can stop, and a function as children puts anything inside a dot."
+                    props={`<Carousel.Dots className="flex gap-2" dotClassName="... aria-[current=true]:w-6" />`}
+                >
+                    <DotsDemo />
+                </Demo>
+
+                <Demo
+                    title="5. Glide"
                     description="Constant motion instead of steps. Hover it, or press pause: it eases to a stop and eases back up."
                     props={`autoPlay={{ speed: 0.6, ease: { pause: { duration: 900 } } }}`}
                 >
@@ -70,7 +79,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="5. Spring release"
+                    title="6. Spring release"
                     description="Flick it and let go. It coasts, bounces on a spring curve, and carries on in the direction you threw it."
                     props={`autoPlay={{ speed: 0.7, steer: { drag: true },\n  ease: { release: { duration: 2400, easing: spring({ bounce: 0.3 }) } } }}`}
                 >
@@ -78,7 +87,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="6. Scroll steers it"
+                    title="7. Scroll steers it"
                     description="Scroll the page up and the carousel turns around. Scroll down and it turns back."
                     props={`autoPlay={{ speed: 0.8, steer: { scroll: true }, ease: { reverse: { duration: 600 } } }}`}
                 >
@@ -86,7 +95,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="7. Buttons steer it"
+                    title="8. Buttons steer it"
                     description="It starts out heading backward. Prev and Next turn the glide round, with a short ease."
                     props={`autoPlay={{ speed: 0.8, direction: 'backward', steer: { buttons: true } }}`}
                 >
@@ -94,7 +103,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="8. Steering works in step mode too"
+                    title="9. Steering works in step mode too"
                     description="The same options steer step autoplay: press Prev and it keeps stepping backward. Drag it the other way and it turns again. The label shows the direction."
                     props={`autoPlay={{ interval: 2200, steer: { buttons: true, drag: true } }}`}
                 >
@@ -102,7 +111,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="9. Style it by speed"
+                    title="10. Style it by speed"
                     description="The carousel writes --carousel-velocity as a CSS variable. Here the cards lean into the motion and shrink a little. Drag and fling it."
                     props={`<Carousel cssVariables>   skewX(calc(var(--carousel-velocity) * -8deg))`}
                 >
@@ -110,7 +119,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="10. Follow the motion"
+                    title="11. Follow the motion"
                     description="useCarouselFrame gives a parallax backdrop and these live numbers every frame. Watch 'renders': the meters update without re-rendering."
                     props={`useCarouselFrame(({ position, velocity, direction }) => { ... })`}
                 >
@@ -118,7 +127,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="11. Your own words, and reduced motion"
+                    title="12. Your own words, and reduced motion"
                     description="Every string a screen reader hears can be replaced. Use a screen reader to hear the French labels. The checkbox forces reduced motion."
                     props={`<Carousel labels={french} reducedMotion={reduced} autoPlay={{ interval: 3000 }}>`}
                 >
@@ -126,7 +135,7 @@ export function Showcase() {
                 </Demo>
 
                 <Demo
-                    title="12. Pause off-screen"
+                    title="13. Pause off-screen"
                     description="Two identical fast glides. Scroll down until they leave the screen: carousel A stops working, B keeps going. The sticky counters show it."
                     props={`autoPlay={{ speed: 1.5, pauseOn: { offScreen: true } }}   vs   offScreen: false`}
                 >

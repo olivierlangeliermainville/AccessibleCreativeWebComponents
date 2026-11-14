@@ -17,6 +17,7 @@ import { useScrollSteer } from './hooks/useScrollSteer'
 import { CarouselTrack } from './CarouselTrack'
 import { CarouselSlide } from './CarouselSlide'
 import { CarouselPrev, CarouselNext, CarouselPlayPause } from './CarouselControls'
+import { CarouselDots } from './CarouselDots'
 
 export function Carousel({
     children,
@@ -215,6 +216,7 @@ Carousel.Slide = CarouselSlide
 Carousel.Prev = CarouselPrev
 Carousel.Next = CarouselNext
 Carousel.PlayPause = CarouselPlayPause
+Carousel.Dots = CarouselDots
 
-export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext, CarouselPlayPause }
+export { CarouselTrack, CarouselSlide, CarouselPrev, CarouselNext, CarouselPlayPause, CarouselDots }
 export default Carousel

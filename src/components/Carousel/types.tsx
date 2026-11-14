@@ -135,6 +135,17 @@ export type SharedProps = {
     cssVariables?: boolean
 }
 
+/** Props for `<Carousel.Dots>`. The rest go to the wrapping `<div>`, so `className` styles the row. */
+export type DotsProps = Omit<React.ComponentPropsWithoutRef<'div'>, 'children'> & {
+    /**
+     * Class for every dot, which is a button. The current dot has `aria-current="true"`, so style it with
+     * `aria-[current=true]:` in Tailwind or `[aria-current=true]` in CSS.
+     */
+    dotClassName?: string
+    /** What goes inside each dot. Default: nothing, so style the dot itself. */
+    children?: (dot: { index: number; active: boolean; count: number }) => React.ReactNode
+}
+
 /** Autoplay needs `type="infinite"`: a carousel with ends has nowhere to keep going. */
 export type ModeProps =
     | { type?: 'default'; autoPlay?: never }

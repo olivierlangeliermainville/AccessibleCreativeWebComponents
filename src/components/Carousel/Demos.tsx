@@ -53,25 +53,6 @@ function PlayPauseButton() {
     return <Carousel.PlayPause className={navButton}>{playing ? '⏸ Pause' : '▶ Play'}</Carousel.PlayPause>
 }
 
-function Dots() {
-    const { activeIndex, slideCount, goTo } = useCarouselState()
-    return (
-        <div className="flex items-center gap-2">
-            {Array.from({ length: slideCount }, (_, i) => (
-                <button
-                    key={i}
-                    aria-label={`Go to slide ${i + 1}`}
-                    aria-current={i === activeIndex}
-                    onClick={() => goTo(i)}
-                    className={`h-2.5 cursor-pointer rounded-full transition-all ${
-                        i === activeIndex ? 'w-6 bg-white' : 'w-2.5 bg-white/40 hover:bg-white/70'
-                    }`}
-                />
-            ))}
-        </div>
-    )
-}
-
 // ---------------------------------------------------------------------------------------------
 // 1. Default mode: stops at the ends
 // ---------------------------------------------------------------------------------------------
@@ -132,7 +113,10 @@ export function HeroDemo() {
                     ))}
                 </Carousel.Track>
                 <div className="mt-3 flex items-center justify-between">
-                    <Dots />
+                    <Carousel.Dots
+                        className="flex items-center gap-2"
+                        dotClassName="h-2.5 w-2.5 cursor-pointer rounded-full bg-white/40 transition-all hover:bg-white/70 aria-[current=true]:w-6 aria-[current=true]:bg-white"
+                    />
                     <PlayPauseButton />
                 </div>
             </Carousel>
@@ -144,7 +128,59 @@ export function HeroDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 4. Glide: constant motion that eases to a stop on pause and on hover
+// 4. Dots: Carousel.Dots draws the slide pickers
+// ---------------------------------------------------------------------------------------------
+
+// The current dot has aria-current="true", so that is what the styles hang off
+const dotClass =
+    'h-2.5 w-2.5 cursor-pointer rounded-full bg-white/40 transition-all hover:bg-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white aria-[current=true]:w-6 aria-[current=true]:bg-white'
+
+const numberClass =
+    'grid size-8 cursor-pointer place-items-center rounded-lg bg-white/10 text-sm hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white aria-[current=true]:bg-white aria-[current=true]:text-black'
+
+export function DotsDemo() {
+    return (
+        <div className="space-y-10">
+            <div>
+                <p className="mb-2 text-sm text-neutral-400">
+                    Default mode, 8 slides: a dot for each place it can stop, so fewer dots than slides.
+                </p>
+                <Carousel aria-label="Dots in default mode" gap={16} drag>
+                    <Carousel.Track>{slides(8, { width: 'w-40' })}</Carousel.Track>
+                    <Carousel.Dots className="mt-3 flex justify-center gap-2" dotClassName={dotClass} />
+                </Carousel>
+            </div>
+
+            <div>
+                <p className="mb-2 text-sm text-neutral-400">
+                    Infinite with autoplay: numbered dots, drawn by a function. A dot goes the short way round.
+                </p>
+                <Carousel type="infinite" aria-label="Numbered dots" drag autoPlay={{ interval: 3000 }}>
+                    <Carousel.Track className="overflow-hidden rounded-xl">
+                        {heroSlides.map((slide, i) => (
+                            <Carousel.Slide key={i} className="w-full">
+                                <div
+                                    className={`grid h-40 place-items-center bg-linear-to-br text-xl font-semibold text-white ${slide.style}`}
+                                >
+                                    {slide.title}
+                                </div>
+                            </Carousel.Slide>
+                        ))}
+                    </Carousel.Track>
+                    <div className="mt-3 flex items-center justify-between">
+                        <Carousel.Dots className="flex gap-1.5" dotClassName={numberClass}>
+                            {({ index }) => index + 1}
+                        </Carousel.Dots>
+                        <PlayPauseButton />
+                    </div>
+                </Carousel>
+            </div>
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------------------------
+// 5. Glide: constant motion that eases to a stop on pause and on hover
 // ---------------------------------------------------------------------------------------------
 
 export function GlideDemo() {
@@ -165,7 +201,7 @@ export function GlideDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 5. Spring release: flick it, it bounces, and carries on the way you threw it
+// 6. Spring release: flick it, it bounces, and carries on the way you threw it
 // ---------------------------------------------------------------------------------------------
 
 const bouncy = spring({ bounce: 0.3 }) // created once, outside the component
@@ -190,7 +226,7 @@ export function SpringDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 6. Scroll influence: scrolling the page steers the glide
+// 7. Scroll influence: scrolling the page steers the glide
 // ---------------------------------------------------------------------------------------------
 
 export function ScrollDemo() {
@@ -212,7 +248,7 @@ export function ScrollDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 7. Button direction: Prev and Next also steer the glide
+// 8. Button direction: Prev and Next also steer the glide
 // ---------------------------------------------------------------------------------------------
 
 export function ButtonDirectionDemo() {
@@ -236,7 +272,7 @@ export function ButtonDirectionDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 8. Step autoplay steered by the buttons: the same options work in both autoplay modes
+// 9. Step autoplay steered by the buttons: the same options work in both autoplay modes
 // ---------------------------------------------------------------------------------------------
 
 export function StepSteerDemo() {
@@ -266,7 +302,7 @@ function DirectionLabel() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 9. CSS variables: style anything by how fast the carousel moves
+// 10. CSS variables: style anything by how fast the carousel moves
 // ---------------------------------------------------------------------------------------------
 
 export function VelocityDemo() {
@@ -301,7 +337,7 @@ export function VelocityDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 10. Frame hook: follow the motion without re-rendering
+// 11. Frame hook: follow the motion without re-rendering
 // ---------------------------------------------------------------------------------------------
 
 function Backdrop() {
@@ -371,7 +407,7 @@ export function FrameDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 11. Your own words, and reduced motion
+// 12. Your own words, and reduced motion
 // ---------------------------------------------------------------------------------------------
 
 const french = {
@@ -417,7 +453,7 @@ export function LabelsDemo() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 12. Pause off-screen: scroll away and compare the two counters
+// 13. Pause off-screen: scroll away and compare the two counters
 // ---------------------------------------------------------------------------------------------
 
 export function OffScreenDemo() {

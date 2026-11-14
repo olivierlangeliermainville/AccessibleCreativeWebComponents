@@ -3,6 +3,8 @@ export const defaultLabels = {
     play: 'Start slide rotation',
     prev: 'Previous slide',
     next: 'Next slide',
+    dots: 'Choose slide',
+    goTo: (index: number) => `Go to slide ${index}`,
     slide: (index: number, count: number) => `${index} of ${count}`,
     status: (first: number, last: number, count: number) =>
         first === last ? `Slide ${first} of ${count}` : `Slides ${first} to ${last} of ${count}`,

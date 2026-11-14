@@ -6,6 +6,7 @@ export {
     CarouselPrev,
     CarouselNext,
     CarouselPlayPause,
+    CarouselDots,
 } from './Carousel'
 
 // Hooks for building your own controls and effects
@@ -26,6 +27,7 @@ export type {
     GlideAutoPlay,
     GlideEase,
     SteerOptions,
+    DotsProps,
     PauseOptions,
     MotionFrame,
 } from './types'
