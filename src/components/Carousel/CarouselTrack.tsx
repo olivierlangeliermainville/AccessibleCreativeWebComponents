@@ -92,17 +92,49 @@ export function CarouselTrack({ children, style, ...props }: React.ComponentProp
         return elapsedMs > 0 ? (lastSample.x - firstSample.x) / elapsedMs : 0
     }
 
+    // Move and release are heard on window, so a release anywhere (outside the carousel, over an
+    // iframe, or after pointer capture is lost) still ends the drag
+    const removeWindowListenersRef = useRef<(() => void) | null>(null)
+    const activePointerIdRef = useRef<number | null>(null) // the pointer being tracked, if any
+    type PointerHandler = (event: PointerEvent) => void
+    const handlersRef = useRef<{ move: PointerHandler; end: PointerHandler }>({ move: () => {}, end: () => {} })
+
     const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.pointerType === 'mouse' && event.button !== 0) return
+        // A second finger mid-drag would reset the start point and make the slides jump.
+        // The same pointer pressing again (its release was missed) starts over instead.
+        if (activePointerIdRef.current !== null && activePointerIdRef.current !== event.pointerId) return
         const slide = trackRef.current?.querySelector<HTMLElement>('[data-carousel-slide]')
         stepPxRef.current = slide ? slide.offsetWidth + gap : 1
         pointerStartXRef.current = event.clientX
         dragOriginXRef.current = event.clientX
         samplesRef.current = [{ x: event.clientX, t: event.timeStamp }]
+
+        removeWindowListenersRef.current?.()
+        const { pointerId } = event
+        activePointerIdRef.current = pointerId
+        const move = (e: PointerEvent) => e.pointerId === pointerId && handlersRef.current.move(e)
+        const end = (e: PointerEvent) => e.pointerId === pointerId && handlersRef.current.end(e)
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', end)
+        window.addEventListener('pointercancel', end)
+        removeWindowListenersRef.current = () => {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', end)
+            window.removeEventListener('pointercancel', end)
+            removeWindowListenersRef.current = null
+            activePointerIdRef.current = null
+        }
     }
 
-    const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const onPointerMove = (event: PointerEvent) => {
         if (pointerStartXRef.current === null) return
+        // No button held (e.g. released outside the window before capture): drop the stale press
+        if (event.buttons === 0 && !dragStartedRef.current) {
+            pointerStartXRef.current = null
+            removeWindowListenersRef.current?.()
+            return
+        }
 
         samplesRef.current.push({ x: event.clientX, t: event.timeStamp })
         while (samplesRef.current.length > 2 && event.timeStamp - samplesRef.current[0].t > 100) {
@@ -113,14 +145,19 @@ export function CarouselTrack({ children, style, ...props }: React.ComponentProp
             if (Math.abs(event.clientX - pointerStartXRef.current) < 5) return // so clicks still work
             dragStartedRef.current = true
             dragOriginXRef.current = event.clientX // measure from here, so the slides don't jump
-            event.currentTarget.setPointerCapture(event.pointerId)
+            try {
+                trackRef.current?.setPointerCapture(event.pointerId) // keeps hover effects elsewhere quiet
+            } catch {
+                // the pointer is no longer active: the window listeners still cover the release
+            }
             startDrag()
         }
 
         moveDrag((event.clientX - dragOriginXRef.current) / stepPxRef.current)
     }
 
-    const onPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const onPointerEnd = (event: PointerEvent) => {
+        removeWindowListenersRef.current?.()
         if (pointerStartXRef.current === null) return
         const wasDragging = dragStartedRef.current
         pointerStartXRef.current = null
@@ -136,12 +173,18 @@ export function CarouselTrack({ children, style, ...props }: React.ComponentProp
         releaseDrag((-getPointerVelocity(event.timeStamp) * 1000) / stepPxRef.current)
     }
 
+    // The window listeners call the latest handlers, which see the latest context values
+    useLayoutEffect(() => {
+        handlersRef.current = { move: onPointerMove, end: onPointerEnd }
+    })
+
+    // Unmounting mid-drag must not leave listeners on window
+    useLayoutEffect(() => () => removeWindowListenersRef.current?.(), [])
+
     const dragProps = draggable
         ? {
               onPointerDown,
-              onPointerMove,
-              onPointerUp: onPointerEnd,
-              onPointerCancel: onPointerEnd,
+              onDragStart: (event: React.DragEvent) => event.preventDefault(),
               onClickCapture: (event: React.MouseEvent) => {
                   if (justDraggedRef.current) {
                       event.preventDefault()

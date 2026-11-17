@@ -9,7 +9,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/olivierlangeliermainville/Dolby2001Components.git"
+    "url": "git+https://github.com/olivierlangeliermainville/AccessibleCreativeWebComponents.git"
   },
   "exports": {
     ".": {
@@ -32,10 +32,11 @@
     "prepublishOnly": "vitest run && tsup"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.5",
-    "tailwindcss": "^4.3.5"
+
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "tailwindcss": "^4.3.5",
     "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

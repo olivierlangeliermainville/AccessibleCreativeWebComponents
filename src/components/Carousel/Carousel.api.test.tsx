@@ -207,9 +207,9 @@ describe('steering with a drag', () => {
         fireEvent.pointerDown(track(), { clientX: from, button: 0, ...opts })
         const direction = to > from ? 1 : -1
         for (let x = from + direction * 10; direction * (to - x) > 0; x += direction * 10) {
-            fireEvent.pointerMove(track(), { clientX: x, ...opts })
+            fireEvent.pointerMove(track(), { clientX: x, buttons: 1, ...opts })
         }
-        fireEvent.pointerMove(track(), { clientX: to, ...opts })
+        fireEvent.pointerMove(track(), { clientX: to, buttons: 1, ...opts })
         fireEvent.pointerUp(track(), { clientX: to, ...opts })
     }
 
@@ -230,6 +230,31 @@ describe('steering with a drag', () => {
         drag(100, 300)
         await advance(100)
         expect(state.direction).toBe('backward')
+    })
+
+    it('ends the drag when released outside the carousel', async () => {
+        renderCarousel({ drag: true })
+        const opts = { pointerId: 1, pointerType: 'mouse' }
+        fireEvent.pointerDown(track(), { clientX: 300, button: 0, ...opts })
+        fireEvent.pointerMove(track(), { clientX: 250, buttons: 1, ...opts })
+        expect(track().hasAttribute('data-dragging')).toBe(true)
+        fireEvent.pointerUp(document.body, { clientX: 100, ...opts })
+        await advance(100)
+        expect(track().hasAttribute('data-dragging')).toBe(false)
+    })
+
+    it('ignores a second finger pressing mid-drag', async () => {
+        renderCarousel({ drag: true })
+        const first = { pointerId: 1, pointerType: 'touch' }
+        const second = { pointerId: 2, pointerType: 'touch' }
+        fireEvent.pointerDown(track(), { clientX: 300, ...first })
+        fireEvent.pointerMove(track(), { clientX: 250, buttons: 1, ...first })
+        fireEvent.pointerDown(track(), { clientX: 50, ...second })
+        fireEvent.pointerUp(track(), { clientX: 50, ...second })
+        expect(track().hasAttribute('data-dragging')).toBe(true) // the second finger changed nothing
+        fireEvent.pointerUp(track(), { clientX: 250, ...first })
+        await advance(100)
+        expect(track().hasAttribute('data-dragging')).toBe(false)
     })
 
     it('ignores a tiny nudge', async () => {
